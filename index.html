@@ -195,6 +195,13 @@
             padding: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-control {
+            width: 80px;
         }
 
         .surprise-message {
@@ -346,23 +353,44 @@
             padding: 10px;
             border-radius: 15px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            height: 50px;
+            gap: 2px;
         }
 
         .audio-bar {
             width: 4px;
             background: linear-gradient(to top, #ff6b6b, #4ecdc4);
-            margin: 0 2px;
+            margin: 0 1px;
             border-radius: 2px;
-            animation: audioWave 1s ease-in-out infinite alternate;
+            height: 10px;
         }
 
-        @keyframes audioWave {
-            0% { height: 10px; }
-            100% { height: 30px; }
+        .music-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            color: white;
+            font-size: 1.5rem;
+            display: none;
         }
     </style>
 </head>
 <body>
+    <!-- Music Loading Indicator -->
+    <div class="music-loading" id="musicLoading">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+            <p>Memuat musik...</p>
+        </div>
+    </div>
+
     <!-- Hero Section -->
     <div class="hero-section">
         <div class="floating-balloons">
@@ -522,8 +550,10 @@
             
             <div class="photo-carousel">
                 <div class="photo-slide active">
-                    <div class="d-flex flex-column justify-content-center align-items-center h-100 p-4">
-                        <i class="fas fa-birthday-cake" style="font-size: 4rem; margin-bottom: 20px;"></i>
+                    <div style="background-image: url('./foto.jpg');
+                                background-repeat: no-repeat;
+                                background-size: cover;
+                                background-position: center;  " class="d-flex flex-column justify-content-center align-items-center h-100 p-4">
                         <h4>Moment Bahagia</h4>
                         <p>"Setiap foto adalah kenangan yang tak ternilai. Semoga album kehidupanmu selalu dipenuhi kebahagiaan!"</p>
                     </div>
@@ -583,25 +613,30 @@
 
     <!-- Audio Visualizer -->
     <div class="audio-visualizer" id="audioVisualizer">
-        <div class="audio-bar" style="animation-delay: 0s;"></div>
-        <div class="audio-bar" style="animation-delay: 0.1s;"></div>
-        <div class="audio-bar" style="animation-delay: 0.2s;"></div>
-        <div class="audio-bar" style="animation-delay: 0.3s;"></div>
-        <div class="audio-bar" style="animation-delay: 0.4s;"></div>
-        <div class="audio-bar" style="animation-delay: 0.5s;"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
+        <div class="audio-bar"></div>
     </div>
 
     <!-- Music Player -->
     <div class="music-player">
-        <button class="btn btn-primary rounded-circle" onclick="toggleMusic()" title="Play Birthday Song">
+        <button class="btn btn-primary rounded-circle" onclick="toggleMusic()" title="Play Birthday Song" id="musicButton">
             <i class="fas fa-music" id="musicIcon"></i>
         </button>
+        <input type="range" class="volume-control" id="volumeControl" min="0" max="1" step="0.1" value="0.5">
     </div>
 
     <!-- Hidden Audio Element -->
-    <audio id="birthdayAudio" loop>
-        <!-- Elegant birthday background music URL would go here -->
-        <!-- For demonstration, we'll simulate the audio -->
+    <audio id="birthdayAudio">
+        <source src="./Yung_Kai_-_Blue(impuremusic.com).mp3" type="audio/mp3">
+        Browser Anda tidak mendukung elemen audio.
     </audio>
 
     <!-- Bootstrap JS -->
@@ -619,6 +654,21 @@
             "Semoga kebahagiaan selalu menyertaimu! 🌈",
             "Kamu layak mendapatkan semua yang terbaik! 🎁"
         ];
+
+        // Inisialisasi variabel untuk audio
+        let musicPlaying = false;
+        let audioContext;
+        let audioSource;
+        let analyser;
+        let audioElement = document.getElementById('birthdayAudio');
+        let bars = document.querySelectorAll('.audio-bar');
+        let animationFrame;
+
+        // Atur volume awal
+        audioElement.volume = 0.5;
+        document.getElementById('volumeControl').addEventListener('input', function() {
+            audioElement.volume = this.value;
+        });
 
         // Fungsi untuk membuat confetti
         function createConfetti() {
@@ -643,7 +693,7 @@
             const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'];
             return colors[Math.floor(Math.random() * colors.length)];
         }
-a
+
         // Fungsi untuk menampilkan kejutan
         function showSurprise() {
             const surprise = document.getElementById('surpriseMessage');
@@ -731,47 +781,91 @@ a
                     card.style.animation = 'titlePulse 0.5s ease-in-out 6';
                 }, index * 100);
             });
-        }
 
-        // Fungsi toggle music dengan audio visualizer
-        let musicPlaying = false;
-        let audioContext;
-        let audioVisualizer;
-
-        function toggleMusic() {
-            const icon = document.getElementById('musicIcon');
-            const visualizer = document.getElementById('audioVisualizer');
-            
-            if (musicPlaying) {
-                icon.className = 'fas fa-music';
-                visualizer.style.display = 'none';
-                musicPlaying = false;
-                // Stop simulated background music
-                clearInterval(window.musicSimulation);
-            } else {
-                icon.className = 'fas fa-pause';
-                visualizer.style.display = 'flex';
-                musicPlaying = true;
-                
-                // Simulate elegant birthday background music
-                simulateElegantMusic();
-                
-                // Show notification
-                showMusicNotification();
+            // Auto play music in party mode
+            if (!musicPlaying) {
+                toggleMusic();
             }
         }
 
-        function simulateElegantMusic() {
-            // Create a gentle, elegant rhythm simulation
-            let beatCount = 0;
-            window.musicSimulation = setInterval(() => {
-                const bars = document.querySelectorAll('.audio-bar');
-                bars.forEach((bar, index) => {
-                    const height = 10 + Math.sin((beatCount + index) * 0.5) * 15 + Math.random() * 10;
-                    bar.style.height = height + 'px';
-                });
-                beatCount++;
-            }, 200);
+        // Fungsi untuk memulai visualizer audio
+        function setupAudioVisualizer() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                audioSource = audioContext.createMediaElementSource(audioElement);
+                
+                audioSource.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                analyser.fftSize = 256;
+            }
+        }
+
+        // Fungsi untuk mengupdate visualizer
+        function updateVisualizer() {
+            if (!analyser) return;
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Update bars based on frequency data
+            bars.forEach((bar, index) => {
+                const value = dataArray[index % bufferLength] / 255;
+                const height = value * 40;
+                bar.style.height = `${10 + height}px`;
+            });
+            
+            animationFrame = requestAnimationFrame(updateVisualizer);
+        }
+
+        // Fungsi toggle music dengan audio visualizer
+        function toggleMusic() {
+            const icon = document.getElementById('musicIcon');
+            const visualizer = document.getElementById('audioVisualizer');
+            const musicButton = document.getElementById('musicButton');
+            const musicLoading = document.getElementById('musicLoading');
+            
+            if (musicPlaying) {
+                // Pause music
+                audioElement.pause();
+                icon.className = 'fas fa-music';
+                musicButton.classList.remove('btn-success');
+                musicButton.classList.add('btn-primary');
+                visualizer.style.display = 'none';
+                musicPlaying = false;
+                
+                // Stop visualizer animation
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            } else {
+                // Show loading indicator
+                musicLoading.style.display = 'flex';
+                
+                // Play music
+                audioElement.play()
+                    .then(() => {
+                        musicLoading.style.display = 'none';
+                        icon.className = 'fas fa-pause';
+                        musicButton.classList.remove('btn-primary');
+                        musicButton.classList.add('btn-success');
+                        visualizer.style.display = 'flex';
+                        musicPlaying = true;
+                        
+                        // Setup and start visualizer
+                        setupAudioVisualizer();
+                        updateVisualizer();
+                        
+                        showMusicNotification();
+                    })
+                    .catch(error => {
+                        musicLoading.style.display = 'none';
+                        console.error("Error playing audio: ", error);
+                        alert("Terjadi error saat memutar musik. Pastikan file musik tersedia.");
+                    });
+            }
         }
 
         function showMusicNotification() {
@@ -790,7 +884,7 @@ a
                 font-weight: bold;
                 animation: slideInRight 0.5s ease-out;
             `;
-            notification.innerHTML = '🎵 Musik Ulang Tahun Elegan Dimulai! 🎵';
+            notification.innerHTML = '🎵 Memutar Musik Ulang Tahun! 🎵';
             document.body.appendChild(notification);
 
             setTimeout(() => {
@@ -805,11 +899,6 @@ a
         function openPhotoSlider() {
             document.getElementById('photoSlider').style.display = 'block';
             document.body.style.overflow = 'hidden';
-            
-            // Auto-start elegant music when opening gallery
-            if (!musicPlaying) {
-                toggleMusic();
-            }
             
             // Start auto-slide
             startAutoSlide();
@@ -916,6 +1005,9 @@ a
         // Auto confetti saat halaman dimuat
         window.addEventListener('load', () => {
             setTimeout(createConfetti, 1000);
+            
+            // Preload audio untuk menghindari lag
+            audioElement.load();
         });
 
         // Efek hover pada balon
